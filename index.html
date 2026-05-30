@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sandwich Court — The People Will Judge</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500&display=swap');
+
+  :root {
+    --mustard: #E8A020;
+    --mustard-light: #FDF3E0;
+    --bread: #C8772A;
+    --dark: #1A1208;
+    --text: #2C1F0A;
+    --muted: #8A7055;
+    --border: #E8D5B8;
+    --surface: #FDFAF5;
+    --white: #FFFFFF;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--surface);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--dark);
+    color: white;
+    text-align: center;
+    padding: 2rem 1rem 1.5rem;
+    border-bottom: 4px solid var(--mustard);
+  }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    font-weight: 900;
+    letter-spacing: -1px;
+    color: var(--mustard);
+  }
+
+  header p {
+    color: #AAA;
+    font-size: 0.95rem;
+    margin-top: 0.3rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+  }
+
+  nav {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    background: var(--dark);
+    padding: 0 1rem 1rem;
+  }
+
+  nav button {
+    background: transparent;
+    border: 1px solid #444;
+    color: #AAA;
+    padding: 0.5rem 1.5rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.05em;
+  }
+
+  nav button:first-child { border-radius: 6px 0 0 6px; }
+  nav button:last-child { border-radius: 0 6px 6px 0; }
+
+  nav button.active {
+    background: var(--mustard);
+    border-color: var(--mustard);
+    color: var(--dark);
+    font-weight: 500;
+  }
+
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+
+  /* SUBMIT FORM */
+  .submit-section {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    padding: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .submit-section h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    margin-bottom: 1.25rem;
+  }
+
+  label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.35rem;
+  }
+
+  input[type="text"], textarea {
+    width: 100%;
+    padding: 0.65rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    background: var(--surface);
+    margin-bottom: 1rem;
+    transition: border-color 0.15s;
+  }
+
+  input[type="text"]:focus, textarea:focus {
+    outline: none;
+    border-color: var(--mustard);
+  }
+
+  textarea { resize: vertical; min-height: 80px; }
+
+  .upload-area {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 1rem;
+    position: relative;
+  }
+
+  .upload-area:hover, .upload-area.dragover {
+    border-color: var(--mustard);
+    background: var(--mustard-light);
+  }
+
+  .upload-area input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .upload-area p { color: var(--muted); font-size: 0.9rem; pointer-events: none; }
+  .upload-area .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+
+  #preview-img {
+    width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    display: none;
+  }
+
+  .btn-submit {
+    width: 100%;
+    padding: 0.85rem;
+    background: var(--bread);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  .btn-submit:hover { opacity: 0.88; }
+  .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* FEED */
+  .feed-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .sandwich-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+
+  .sandwich-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  }
+
+  .sandwich-card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+  }
+
+  .card-body {
+    padding: 1rem 1.1rem;
+  }
+
+  .card-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+  }
+
+  .card-desc {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+    line-height: 1.5;
+  }
+
+  .rating-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .avg-score {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: var(--mustard);
+  }
+
+  .avg-score span {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+  }
+
+  .stars {
+    display: flex;
+    gap: 2px;
+  }
+
+  .stars button {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 2px;
+    transition: transform 0.1s;
+    line-height: 1;
+  }
+
+  .stars button:hover { transform: scale(1.2); }
+
+  .star { color: #DDD; }
+  .star.filled { color: var(--mustard); }
+
+  .vote-count {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 0.25rem;
+    text-align: right;
+  }
+
+  .rated-badge {
+    font-size: 0.7rem;
+    background: #EEF7EE;
+    color: #2E7D32;
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-weight: 500;
+  }
+
+  /* LEADERBOARD */
+  .leaderboard-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 0.6rem;
+    transition: transform 0.1s;
+  }
+
+  .leaderboard-item:hover { transform: translateX(3px); }
+
+  .rank {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 900;
+    width: 2rem;
+    text-align: center;
+    color: var(--border);
+  }
+
+  .rank.gold { color: #F4B400; }
+  .rank.silver { color: #9E9E9E; }
+  .rank.bronze { color: #A0522D; }
+
+  .lb-img {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .lb-info { flex: 1; }
+  .lb-name {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 1rem;
+  }
+  .lb-votes { font-size: 0.8rem; color: var(--muted); }
+
+  .lb-score {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: var(--mustard);
+  }
+
+  /* Toasts */
+  #toast {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(6rem);
+    background: var(--dark);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    transition: transform 0.3s;
+    z-index: 999;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  .loading { text-align: center; color: var(--muted); padding: 3rem; }
+
+  .empty {
+    text-align: center;
+    padding: 3rem;
+    color: var(--muted);
+  }
+  .empty .big { font-size: 3rem; margin-bottom: 0.5rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🥪 Sandwich Court</h1>
+  <p>The people will judge</p>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('feed')">Feed</button>
+  <button onclick="showTab('submit')">Submit</button>
+  <button onclick="showTab('leaderboard')">Leaderboard</button>
+</nav>
+
+<!-- MAIN APP -->
+<div id="app">
+
+  <!-- FEED TAB -->
+  <div id="tab-feed" class="container">
+    <div id="feed-content" class="loading">Loading sandwiches...</div>
+  </div>
+
+  <!-- SUBMIT TAB -->
+  <div id="tab-submit" class="container" style="display:none">
+    <div class="submit-section">
+      <h2>Submit Your Sandwich</h2>
+      <label>Sandwich Name *</label>
+      <input type="text" id="s-name" placeholder="e.g. The Midnight Destroyer" />
+      <label>Tell us about it</label>
+      <textarea id="s-desc" placeholder="What's in it? Why does it exist?"></textarea>
+      <label>Photo</label>
+      <img id="preview-img" alt="preview" />
+      <div class="upload-area" id="upload-area">
+        <input type="file" id="s-file" accept="image/*" onchange="handleFileSelect(event)" />
+        <div class="icon">📷</div>
+        <p>Click or drag a photo here</p>
+      </div>
+      <button class="btn-submit" id="submit-btn" onclick="submitSandwich()">Submit for Judgment</button>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD TAB -->
+  <div id="tab-leaderboard" class="container" style="display:none">
+    <div id="lb-content" class="loading">Tallying the votes...</div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const VOTER_ID = (() => {
+    let id = localStorage.getItem('voter_id');
+    if (!id) { id = crypto.randomUUID(); localStorage.setItem('voter_id', id); }
+    return id;
+  })();
+
+  let supabase = null;
+  let myRatings = {};
+  let currentTab = 'feed';
+
+  function getConfig() {
+    return {
+      url: 'https://cesiwngufiqippotvcpp.supabase.co',
+      key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlc2l3bmd1ZmlxaXBwb3R2Y3BwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNDQxNTMsImV4cCI6MjA5NTcyMDE1M30.Ruy-spFeTRNX5il7ytijAF-lGaPmXh3dS70TVLwRzEQ'
+    };
+  }
+
+  function initApp() {
+    const { url, key } = getConfig();
+    supabase = window.supabase.createClient(url, key);
+    loadFeed();
+    loadMyRatings();
+  }
+
+  async function loadMyRatings() {
+    const { data } = await supabase.from('ratings').select('sandwich_id, score').eq('voter_id', VOTER_ID);
+    if (data) data.forEach(r => { myRatings[r.sandwich_id] = r.score; });
+  }
+
+  async function loadFeed() {
+    const el = document.getElementById('feed-content');
+    el.innerHTML = '<div class="loading">Loading sandwiches...</div>';
+
+    const { data: sandwiches, error } = await supabase
+      .from('sandwiches').select('*').order('created_at', { ascending: false });
+
+    if (error) { el.innerHTML = `<div class="empty"><div class="big">😬</div><p>${error.message}</p></div>`; return; }
+    if (!sandwiches.length) {
+      el.innerHTML = `<div class="empty"><div class="big">🥪</div><p>No sandwiches yet. Be the first to submit one.</p></div>`;
+      return;
+    }
+
+    const ids = sandwiches.map(s => s.id);
+    const { data: ratings } = await supabase.from('ratings').select('sandwich_id, score').in('sandwich_id', ids);
+
+    const ratingMap = {};
+    (ratings || []).forEach(r => {
+      if (!ratingMap[r.sandwich_id]) ratingMap[r.sandwich_id] = [];
+      ratingMap[r.sandwich_id].push(r.score);
+    });
+
+    el.innerHTML = `<div class="feed-grid">${sandwiches.map(s => {
+      const rs = ratingMap[s.id] || [];
+      const avg = rs.length ? (rs.reduce((a,b) => a+b, 0) / rs.length).toFixed(1) : '—';
+      const myScore = myRatings[s.id];
+      const img = s.image_url ? `<img src="${s.image_url}" alt="${s.name}" loading="lazy" />` : '';
+      return `
+        <div class="sandwich-card">
+          ${img}
+          <div class="card-body">
+            <div class="card-name">${s.name}</div>
+            ${s.description ? `<div class="card-desc">${s.description}</div>` : ''}
+            <div class="rating-row">
+              <div>
+                <div class="avg-score">${avg} <span>/ 10</span></div>
+                <div class="vote-count">${rs.length} vote${rs.length !== 1 ? 's' : ''}</div>
+              </div>
+              ${myScore
+                ? `<div><div class="rated-badge">You rated ${myScore}/10</div></div>`
+                : `<div>
+                    <div class="stars" id="stars-${s.id}">${[1,2,3,4,5,6,7,8,9,10].map(n =>
+                      `<button onclick="rate('${s.id}',${n})" title="${n}">${n <= 5 ? '★' : '★'}</button>`
+                    ).join('')}</div>
+                    <div style="font-size:0.72rem;color:var(--muted);text-align:right;margin-top:2px">tap to rate</div>
+                  </div>`
+              }
+            </div>
+          </div>
+        </div>`;
+    }).join('')}</div>`;
+  }
+
+  async function rate(sandwichId, score) {
+    if (myRatings[sandwichId]) { toast('Already voted on this one'); return; }
+    const { error } = await supabase.from('ratings').insert({ sandwich_id: sandwichId, score, voter_id: VOTER_ID });
+    if (error) { toast('Could not save rating'); return; }
+    myRatings[sandwichId] = score;
+    toast(`Rated ${score}/10 — the court has spoken`);
+    loadFeed();
+    if (currentTab === 'leaderboard') loadLeaderboard();
+  }
+
+  async function loadLeaderboard() {
+    const el = document.getElementById('lb-content');
+    el.innerHTML = '<div class="loading">Tallying...</div>';
+
+    const { data: sandwiches } = await supabase.from('sandwiches').select('*');
+    const { data: ratings } = await supabase.from('ratings').select('sandwich_id, score');
+
+    if (!sandwiches || !sandwiches.length) {
+      el.innerHTML = `<div class="empty"><div class="big">🏆</div><p>No sandwiches rated yet.</p></div>`;
+      return;
+    }
+
+    const ratingMap = {};
+    (ratings || []).forEach(r => {
+      if (!ratingMap[r.sandwich_id]) ratingMap[r.sandwich_id] = [];
+      ratingMap[r.sandwich_id].push(r.score);
+    });
+
+    const ranked = sandwiches
+      .map(s => {
+        const rs = ratingMap[s.id] || [];
+        const avg = rs.length ? rs.reduce((a,b) => a+b, 0) / rs.length : 0;
+        return { ...s, avg, votes: rs.length };
+      })
+      .filter(s => s.votes > 0)
+      .sort((a, b) => b.avg - a.avg);
+
+    if (!ranked.length) {
+      el.innerHTML = `<div class="empty"><div class="big">🏆</div><p>No votes yet. Start judging.</p></div>`;
+      return;
+    }
+
+    const medals = ['gold', 'silver', 'bronze'];
+    el.innerHTML = ranked.map((s, i) => `
+      <div class="leaderboard-item">
+        <div class="rank ${medals[i] || ''}">${i + 1}</div>
+        ${s.image_url ? `<img class="lb-img" src="${s.image_url}" alt="${s.name}" />` : `<div class="lb-img" style="background:var(--mustard-light);display:flex;align-items:center;justify-content:center;font-size:1.5rem">🥪</div>`}
+        <div class="lb-info">
+          <div class="lb-name">${s.name}</div>
+          <div class="lb-votes">${s.votes} vote${s.votes !== 1 ? 's' : ''}</div>
+        </div>
+        <div class="lb-score">${s.avg.toFixed(1)}</div>
+      </div>
+    `).join('');
+  }
+
+  let selectedFile = null;
+
+  function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = document.getElementById('preview-img');
+      img.src = ev.target.result;
+      img.style.display = 'block';
+      document.getElementById('upload-area').style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function submitSandwich() {
+    const name = document.getElementById('s-name').value.trim();
+    if (!name) { toast('Give your sandwich a name'); return; }
+
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+
+    let image_url = null;
+
+    if (selectedFile) {
+      const ext = selectedFile.name.split('.').pop();
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error: uploadErr } = await supabase.storage.from('sandwiches').upload(path, selectedFile);
+      if (uploadErr) { toast('Image upload failed: ' + uploadErr.message); btn.disabled = false; btn.textContent = 'Submit for Judgment'; return; }
+      const { data: { publicUrl } } = supabase.storage.from('sandwiches').getPublicUrl(path);
+      image_url = publicUrl;
+    }
+
+    const desc = document.getElementById('s-desc').value.trim();
+    const { error } = await supabase.from('sandwiches').insert({ name, description: desc || null, image_url });
+
+    btn.disabled = false;
+    btn.textContent = 'Submit for Judgment';
+
+    if (error) { toast('Failed: ' + error.message); return; }
+
+    toast('Sandwich submitted. May the court be kind.');
+    document.getElementById('s-name').value = '';
+    document.getElementById('s-desc').value = '';
+    document.getElementById('preview-img').style.display = 'none';
+    document.getElementById('upload-area').style.display = 'block';
+    selectedFile = null;
+    document.getElementById('s-file').value = '';
+    showTab('feed');
+    loadFeed();
+  }
+
+  function showTab(tab) {
+    currentTab = tab;
+    ['feed','submit','leaderboard'].forEach(t => {
+      document.getElementById(`tab-${t}`).style.display = t === tab ? 'block' : 'none';
+    });
+    document.querySelectorAll('nav button').forEach((btn, i) => {
+      btn.classList.toggle('active', ['feed','submit','leaderboard'][i] === tab);
+    });
+    if (tab === 'leaderboard') loadLeaderboard();
+    if (tab === 'feed') loadFeed();
+  }
+
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 3000);
+  }
+
+  // Drag and drop
+  const ua = document.getElementById('upload-area');
+  if (ua) {
+    ua.addEventListener('dragover', e => { e.preventDefault(); ua.classList.add('dragover'); });
+    ua.addEventListener('dragleave', () => ua.classList.remove('dragover'));
+    ua.addEventListener('drop', e => {
+      e.preventDefault();
+      ua.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        selectedFile = file;
+        const reader = new FileReader();
+        reader.onload = ev => {
+          const img = document.getElementById('preview-img');
+          img.src = ev.target.result;
+          img.style.display = 'block';
+          ua.style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  initApp();
+</script>
+</body>
+</html>
